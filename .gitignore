@@ -1,0 +1,14 @@
+# build output
+bin/
+obj/
+dist/
+*.user
+.vs/
+
+# never commit signing material
+*.pfx
+*.pem
+*.p12
+*.key
+
+__pycache__/
