@@ -1,5 +1,5 @@
 // starts the native host and sends activity to the page
-const HOST = "com.whatstauts.host";
+const HOST = "com.whatstatus.host";
 const ports = new Set();
 let host = null;
 let activity;
@@ -12,7 +12,7 @@ function connectHost() {
     for (const p of ports) p.postMessage(activity);
   });
   host.onDisconnect.addListener(() => {
-    console.warn("[whatstauts] host disconnected:", chrome.runtime.lastError?.message);
+    console.warn("[whatstatus] host disconnected:", chrome.runtime.lastError?.message);
     host = null;
     setTimeout(connectHost, 10_000);
   });
@@ -20,7 +20,7 @@ function connectHost() {
 connectHost();
 
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== "whatstauts") return;
+  if (port.name !== "whatstatus") return;
   ports.add(port);
   if (activity !== undefined) port.postMessage(activity);
   port.onDisconnect.addListener(() => ports.delete(port));

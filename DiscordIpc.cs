@@ -5,7 +5,7 @@ using System.IO.Pipes;
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace Whatstauts;
+namespace WhatStatus;
 
 // proxies discord-ipc-0 to the real Discord pipe and reads what games send
 static class DiscordIpc
@@ -155,7 +155,7 @@ static class DiscordIpc
                     },
                     ["user"] = new JsonObject
                     {
-                        ["id"] = "0", ["username"] = "whatstauts", ["discriminator"] = "0", ["avatar"] = null,
+                        ["id"] = "0", ["username"] = "whatstatus", ["discriminator"] = "0", ["avatar"] = null,
                     },
                 },
             },

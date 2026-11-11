@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Whatstauts;
+namespace WhatStatus;
 
 // running processes vs Discord's detectable games list
 static class Games
@@ -23,7 +23,7 @@ static class Games
     static HttpClient CreateHttp()
     {
         var h = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-        h.DefaultRequestHeaders.UserAgent.ParseAdd("whatstauts/0.2");
+        h.DefaultRequestHeaders.UserAgent.ParseAdd("WhatStatus/" + Updater.Current);
         return h;
     }
 

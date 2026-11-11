@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace Whatstauts;
+namespace WhatStatus;
 
 // native messaging host, started by WhatsApp. stdin closing means WhatsApp quit
 static class Host
@@ -31,6 +31,7 @@ static class Host
                 Games.ScanLoopAsync(cts.Token),
                 DiscordIpc.RunAsync(cts.Token),
                 Media.LoopAsync(cts.Token),
+                Updater.RunAsync(cts.Token),
             };
 
             string? lastJson = null;

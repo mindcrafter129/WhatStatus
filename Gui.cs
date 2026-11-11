@@ -4,7 +4,7 @@ using System.Drawing.Text;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace Whatstauts;
+namespace WhatStatus;
 
 sealed class Gui : Form
 {
@@ -51,6 +51,7 @@ sealed class Gui : Form
     int sel;
     bool accepted;
     float shown, target, spin;
+    float warnScroll, warnScrollTo, warnMax;
     volatile int stage;
     volatile bool finished;
     volatile bool ok;
@@ -148,6 +149,7 @@ sealed class Gui : Form
 
         pageT = Math.Min(1, pageT + dt / 0.38f);
         spin = (spin + dt * 420) % 360;
+        warnScroll += (warnScrollTo - warnScroll) * (1 - MathF.Exp(-dt * 14));
         for (int i = 0; i < 2; i++) selAnim[i] += ((sel == i ? 1 : 0) - selAnim[i]) * (1 - MathF.Exp(-dt * 16));
         foreach (var k in hover.Keys.ToList())
             hover[k] += ((hot == k ? 1 : 0) - hover[k]) * (1 - MathF.Exp(-dt * 18));
@@ -188,6 +190,12 @@ sealed class Gui : Form
         Cursor = hot != null ? Cursors.Hand : Cursors.Default;
     }
 
+    protected override void OnMouseWheel(MouseEventArgs e)
+    {
+        base.OnMouseWheel(e);
+        if (page == Pg.Warn) warnScrollTo = Math.Clamp(warnScrollTo - e.Delta / 120f * 42, 0, warnMax);
+    }
+
     protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); hot = null; }
 
     protected override void OnMouseDown(MouseEventArgs e)
@@ -215,6 +223,18 @@ sealed class Gui : Form
             case "row0": sel = 0; break;
             case "row1": sel = 1; break;
         }
+    }
+
+    // arrow and page keys never reach OnKeyDown on a form, they're eaten as dialog keys
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (page == Pg.Warn && keyData is Keys.Down or Keys.Up or Keys.PageDown or Keys.PageUp)
+        {
+            float step = keyData is Keys.PageDown or Keys.PageUp ? 130 : 42;
+            warnScrollTo = Math.Clamp(warnScrollTo + (keyData is Keys.Down or Keys.PageDown ? step : -step), 0, warnMax);
+            return true;
+        }
+        return base.ProcessCmdKey(ref msg, keyData);
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -316,12 +336,44 @@ sealed class Gui : Form
     void DrawWarn(Graphics g)
     {
         using var f = Ui(13);
-        float h = MeasureWrap(g, t.WarnBody, f, 470) + 32;
-        var card = new RectangleF(19, 90, 506, h);
+        using var fb = Ui(13, true);
+        var card = new RectangleF(19, 90, 506, 150);
         Fill(g, card, 4, A(Card, pa));
-        Draw(g, t.WarnBody, f, A(BtnTxt, pa), new RectangleF(37, 106, 470, h - 32), Wrap);
 
-        rChk = new RectangleF(19, 90 + h + 12, 506, 40);
+        var saved = g.Save();
+        g.SetClip(card);
+        const float x = 37, w = 462;
+        float top = card.Y + 14, y = top - warnScroll;
+        float h = MeasureWrap(g, t.WarnBody, f, w);
+        Draw(g, t.WarnBody, f, A(BtnTxt, pa), new RectangleF(x, y, w, h + 4), Wrap);
+        y += h + 12;
+        foreach (var (title, text) in t.Risks)
+        {
+            float th = MeasureWrap(g, title, fb, w);
+            Draw(g, title, fb, A(Txt, pa), new RectangleF(x, y, w, th + 4), Wrap);
+            y += th + 1;
+            float dh = MeasureWrap(g, text, f, w);
+            Draw(g, text, f, A(Muted, pa), new RectangleF(x, y, w, dh + 4), Wrap);
+            y += dh + 10;
+        }
+        float content = y + warnScroll - top;
+        warnMax = Math.Max(0, content - (card.Height - 14));
+        warnScrollTo = Math.Min(warnScrollTo, warnMax);
+        if (warnMax > 0 && warnScroll < warnMax - 2)
+        {
+            var fade = new RectangleF(card.X, card.Bottom - 36, card.Width, 36);
+            using var lg = new LinearGradientBrush(fade, Color.FromArgb(0, Card), A(Card, pa), LinearGradientMode.Vertical);
+            g.FillRectangle(lg, fade.X, fade.Y + 1, fade.Width, fade.Height - 1);
+        }
+        g.Restore(saved);
+        if (warnMax > 0)
+        {
+            float view = card.Height - 8, thumb = Math.Max(24, view * (card.Height / (content + 14)));
+            float ty = card.Y + 4 + (view - thumb) * (warnScroll / warnMax);
+            Fill(g, new RectangleF(card.Right - 7, ty, 3, thumb), 1.5f, A(Color.FromArgb(0x3A, 0x3D, 0x46), pa));
+        }
+
+        rChk = new RectangleF(19, card.Bottom + 12, 506, 40);
         float hv = Hv("chk");
         Fill(g, rChk, 4, A(Mix(Card, Color.FromArgb(0x1E, 0x20, 0x26), hv), pa));
         using (var ic = Ic(24, accepted ? GBoxOn : GBoxOff)) Draw(g, accepted ? GBoxOn : GBoxOff, ic, A(accepted ? Green : Color.FromArgb(0x7B, 0x81, 0x90), pa), new RectangleF(31, rChk.Y, 26, 40), Mid);
@@ -412,6 +464,7 @@ sealed class Gui : Form
         public string Warn = "", Choose = "", Working = "", Done = "", Fail = "", Install = "", Update = "", Remove = "", Quit = "", Back = "", Next = "", Close = "",
             DoneInstall = "", DoneRemove = "", HintInstall = "", HintRemove = "", WarnBody = "", WarnCheck = "", FailTitle = "", FailHint = "";
         public string[] Steps = Array.Empty<string>(), RSteps = Array.Empty<string>();
+        public (string Title, string Text)[] Risks = Array.Empty<(string, string)>();
 
         public static Str ForSystem()
         {
@@ -429,6 +482,15 @@ sealed class Gui : Form
             HintInstall = "Open WhatsApp › Settings › Status to choose what it shows.", HintRemove = "WhatsApp is back to normal.",
             WarnBody = "Patching WhatsApp is against WhatsApp’s Terms of Service. Using this tool may lead to account restrictions or bans. I (the developer) am not responsible for any account bans, restrictions or other consequences. Use at your own risk.",
             WarnCheck = "I understand and accept the risk",
+            Risks = new[]
+            {
+                ("Game status", "Changes your About when you start or stop a game. Your contacts can see what you play."),
+                ("Spotify status (off by default)", "Changes your About on every song, about 20 times an hour while you listen. This is the riskiest feature and makes your account look automated."),
+                ("Time between updates", "Lower values update faster but look less human. Under 30 seconds raises the risk of a ban."),
+                ("Discord connection", "WhatStatus takes over Discord's game connection to see what you play. If Discord isn't running, games may act as if it were."),
+                ("Auto-update", "While WhatsApp is open, WhatStatus downloads and installs new versions from GitHub on its own."),
+                ("The patch", "Needs admin permission once to change a WebView2 setting for WhatsApp, and runs extra code inside WhatsApp."),
+            },
             FailTitle = "Something went wrong", FailHint = "Admin permission was refused, or WhatsApp could not be patched. Nothing was changed that you can’t undo with Uninstall.",
         };
 
@@ -442,6 +504,15 @@ sealed class Gui : Form
             HintInstall = "Abre WhatsApp › Ajustes › Estado para elegir qué se muestra.", HintRemove = "WhatsApp vuelve a la normalidad.",
             WarnBody = "Parchear WhatsApp va en contra de los Términos del Servicio de WhatsApp. Usar esta herramienta puede provocar restricciones o bloqueos de tu cuenta. Yo (el desarrollador) no me hago responsable de bloqueos, restricciones ni otras consecuencias. Úsalo bajo tu propia responsabilidad.",
             WarnCheck = "Entiendo y acepto el riesgo",
+            Risks = new[]
+            {
+                ("Estado de juego", "Cambia tu Info cuando empiezas o dejas un juego. Tus contactos ven a qué juegas."),
+                ("Estado de Spotify (desactivado por defecto)", "Cambia tu Info con cada canción, unas 20 veces por hora mientras escuchas. Es la función más arriesgada y hace que tu cuenta parezca automatizada."),
+                ("Tiempo entre actualizaciones", "Valores bajos actualizan antes pero parecen menos humanos. Menos de 30 segundos aumenta el riesgo de bloqueo."),
+                ("Conexión con Discord", "WhatStatus ocupa la conexión de juegos de Discord para ver a qué juegas. Si Discord no está abierto, los juegos pueden creer que sí lo está."),
+                ("Actualizaciones automáticas", "Mientras WhatsApp está abierto, WhatStatus descarga e instala versiones nuevas desde GitHub por su cuenta."),
+                ("El parche", "Necesita permiso de administrador una vez para cambiar un ajuste de WebView2 de WhatsApp, y ejecuta código extra dentro de WhatsApp."),
+            },
             FailTitle = "Algo salió mal", FailHint = "Se rechazó el permiso de administrador o no se pudo parchear WhatsApp. Todo lo que se haya cambiado se deshace con Desinstalar.",
         };
 
@@ -455,6 +526,15 @@ sealed class Gui : Form
             HintInstall = "Ouvre WhatsApp › Paramètres › Statut pour choisir ce qui s’affiche.", HintRemove = "WhatsApp est revenu à la normale.",
             WarnBody = "Patcher WhatsApp va à l’encontre des Conditions d’utilisation de WhatsApp. Utiliser cet outil peut entraîner des restrictions ou des bannissements de ton compte. Je (le développeur) ne suis pas responsable des bannissements, restrictions ou autres conséquences. À utiliser à tes risques.",
             WarnCheck = "Je comprends et j’accepte le risque",
+            Risks = new[]
+            {
+                ("Statut de jeu", "Change ton Actu quand tu lances ou quittes un jeu. Tes contacts voient à quoi tu joues."),
+                ("Statut Spotify (désactivé par défaut)", "Change ton Actu à chaque morceau, environ 20 fois par heure pendant l’écoute. C’est la fonction la plus risquée et ton compte peut sembler automatisé."),
+                ("Délai entre les mises à jour", "Des valeurs basses vont plus vite mais semblent moins humaines. Moins de 30 secondes augmente le risque de bannissement."),
+                ("Connexion Discord", "WhatStatus prend la connexion de jeu de Discord pour voir à quoi tu joues. Si Discord n’est pas lancé, les jeux peuvent croire qu’il l’est."),
+                ("Mises à jour automatiques", "Quand WhatsApp est ouvert, WhatStatus télécharge et installe tout seul les nouvelles versions depuis GitHub."),
+                ("Le patch", "Demande une fois l’autorisation administrateur pour modifier un réglage WebView2 de WhatsApp, et exécute du code en plus dans WhatsApp."),
+            },
             FailTitle = "Une erreur est survenue", FailHint = "L’autorisation administrateur a été refusée ou WhatsApp n’a pas pu être patché. Tout ce qui a été modifié s’annule avec Désinstaller.",
         };
 
@@ -468,6 +548,15 @@ sealed class Gui : Form
             HintInstall = "Obre WhatsApp › Configuració › Estat per triar què es mostra.", HintRemove = "WhatsApp torna a la normalitat.",
             WarnBody = "Aplicar un pedaç a WhatsApp va en contra dels Termes del Servei de WhatsApp. Utilitzar aquesta eina pot provocar restriccions o bloquejos del teu compte. Jo (el desenvolupador) no em faig responsable de bloquejos, restriccions ni altres conseqüències. Usa-ho sota la teva responsabilitat.",
             WarnCheck = "Entenc i accepto el risc",
+            Risks = new[]
+            {
+                ("Estat del joc", "Canvia la teva Info quan comences o deixes un joc. Els teus contactes veuen a què jugues."),
+                ("Estat de Spotify (desactivat per defecte)", "Canvia la teva Info a cada cançó, unes 20 vegades per hora mentre escoltes. És la funció més arriscada i fa que el compte sembli automatitzat."),
+                ("Temps entre actualitzacions", "Valors baixos actualitzen abans però semblen menys humans. Menys de 30 segons augmenta el risc de bloqueig."),
+                ("Connexió amb Discord", "WhatStatus ocupa la connexió de jocs de Discord per veure a què jugues. Si Discord no està obert, els jocs poden creure que sí que ho està."),
+                ("Actualitzacions automàtiques", "Mentre WhatsApp està obert, WhatStatus descarrega i instal·la versions noves des de GitHub pel seu compte."),
+                ("El pedaç", "Necessita permís d’administrador un cop per canviar un ajust de WebView2 de WhatsApp, i executa codi addicional dins de WhatsApp."),
+            },
             FailTitle = "Alguna cosa ha anat malament", FailHint = "S’ha rebutjat el permís d’administrador o no s’ha pogut aplicar el pedaç a WhatsApp. Tot el que s’hagi canviat es desfà amb Desinstal·la.",
         };
     }

@@ -28,13 +28,15 @@ your WhatsApp *About* updates itself, and goes back to normal when you stop.
   - games that talk to Discord (Rich Presence), by reading the Discord IPC handshake
   - any game on Discord's list of ~25,000 detectable games, by executable
   - Steam games, by their app id
-- **Spotify status**: shows the song and artist you're listening to.
+- **Spotify status** (off by default): shows the song and artist you're listening to.
 - **Your own wording**: `Playing {game}`, `Winning in {game}`, `Vibing to {song} by {artist}`…
   WhatsApp's 50-character limit is handled for you: names get shortened with "…", your own words never.
 - **Native settings page**: a **Status** entry in WhatsApp › Settings, built from WhatsApp's own components, fonts and icons.
 - **Puts things back**: your previous About is restored when nothing is playing (or cleared / left alone, your choice).
 - **English, Español, Français, Català**: follows WhatsApp's language, changeable in the Status page.
 - **One-time patch**: nothing runs at Windows startup. WhatsApp starts WhatStatus itself and closes it when it quits.
+- **Update pacing**: choose how often your About may change (5 to 120 seconds). Anything under 30 seconds turns red, since frequent changes raise the risk of a ban.
+- **Auto-update**: while WhatsApp is open, WhatStatus checks the latest GitHub release every 6 hours and installs it in the background. It only accepts an exe signed with the same certificate as the one you have, and the new version is used from the next WhatsApp start.
 
 ## Screenshots
 
@@ -44,7 +46,7 @@ your WhatsApp *About* updates itself, and goes back to normal when you stop.
 
 ## Install
 
-1. Download `whatstauts.exe` from the [releases](../../releases).
+1. Download `WhatStatus.exe` from the [releases](../../releases).
 2. Run it, accept the disclaimer, choose **Install**. Windows asks for admin permission once.
 3. WhatsApp restarts. Open **Settings › Status** to choose what's shown.
 
@@ -61,7 +63,7 @@ flowchart LR
         G[Games / Steam] -->|process scan| H
         D[Discord RPC games] -->|discord-ipc pipe| H
         S[Spotify] -->|window title| H
-        H[whatstauts.exe<br/>native messaging host]
+        H[WhatStatus.exe<br/>native messaging host]
     end
     subgraph WhatsApp Desktop - WebView2
         E[WhatStatus extension] <-->|stdin / stdout| H
@@ -72,7 +74,7 @@ flowchart LR
 
 - **The patch** is a single per-user WebView2 policy (`HKCU\Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments`)
   that makes WhatsApp's WebView2 load the WhatStatus browser extension. That's why admin permission is needed once.
-- **The extension** starts `whatstauts.exe` as a [native messaging host](https://learn.microsoft.com/microsoft-edge/extensions-chromium/developer-guide/native-messaging),
+- **The extension** starts `WhatStatus.exe` as a [native messaging host](https://learn.microsoft.com/microsoft-edge/extensions-chromium/developer-guide/native-messaging),
   so the exe only lives while WhatsApp is open.
 - **The exe** detects activity and sends `{game, music}` to the extension.
 - **`page.js`** sets the About through WhatsApp's own modules (the same call its About editor makes), with a short expiry that's renewed while you play,
@@ -81,10 +83,17 @@ flowchart LR
 ## Build
 
 ```powershell
-.\build.ps1                       # builds dist\whatstauts.exe
+.\build.ps1                       # builds dist\WhatStatus.exe
 ```
 
 Needs the .NET 8 SDK and Python 3 (to bake `ui-src/wa-templates.json` into `ext/ui.js`).
+
+### Testing updates
+
+The updater normally reads this repo's latest release. To test it without publishing, put another "latest release" URL in
+`%LOCALAPPDATA%\WhatStatus\update-source.txt` (for example a local `latest.json` with a `tag_name` and a `WhatStatus.exe` asset),
+install an older build and restart WhatsApp. While that file exists it checks on every start. Delete it when you're done.
+Updates are only applied if the new exe is signed with the same certificate as the installed one.
 
 | Path | What |
 |---|---|
@@ -98,8 +107,8 @@ Needs the .NET 8 SDK and Python 3 (to bake `ui-src/wa-templates.json` into `ext/
 
 ## Privacy
 
-Everything stays on your PC. WhatStatus keeps a small log (`%LOCALAPPDATA%\whatstauts\log.txt`) with detected game and song names,
-and downloads Discord's public list of detectable games once a day. Nothing is sent anywhere else.
+Everything stays on your PC. WhatStatus keeps a small log (`%LOCALAPPDATA%\WhatStatus\log.txt`) with detected game and song names,
+downloads Discord's public list of detectable games once a day, and checks this repo's latest release every 6 hours. Nothing is sent anywhere else.
 
 ## License
 

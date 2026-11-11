@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Whatstauts;
+namespace WhatStatus;
 
 // spotify window title is "Artist - Song" while playing
 static class Media

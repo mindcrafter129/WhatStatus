@@ -1,27 +1,27 @@
 // Status page in WhatsApp's settings, built from WhatsApp's own markup. gen.py turns this into ext/ui.js
 (() => {
-  const W = window.__whatstauts;
+  const W = window.__whatstatus;
   if (!W || window.__wtUi) return;
 
   const T = /*TEMPLATES*/null;
 
   const I18N = {
-    en: { title: "Status", parens: "Hide brackets in song names", parensDesc: "“Song (Remastered)” shows as “Song”", sub: "Game and music in your About", back: "Back", game: "Game status", gameDesc: "Show the game you are playing",
+    en: { title: "Status", gap: "Time between updates", gapWarn: "Under {n} s raises the risk of a ban", parens: "Hide brackets in song names", parensDesc: "“Song (Remastered)” shows as “Song”", sub: "Game and music in your About", back: "Back", game: "Game status", gameDesc: "Show the game you are playing",
       music: "Spotify status", musicDesc: "Show what you are listening to", gameText: "Game text", musicText: "Spotify text", text: "Text", insert: "Insert",
       reset: "Reset", priority: "When both are active", pGame: "Game", pMusic: "Music", idle: "When nothing is playing", iRestore: "Restore my About",
       iClear: "Clear it", iKeep: "Leave it", language: "Language", auto: "Automatic", now: "Your About right now", none: "Nothing is playing",
       limit: "WhatsApp allows 50 characters. Names are shortened to fit, your own words never are." },
-    es: { title: "Estado", parens: "Ocultar paréntesis en canciones", parensDesc: "“Canción (Remasterizada)” se muestra como “Canción”", sub: "Juego y música en tu Info", back: "Atrás", game: "Estado de juego", gameDesc: "Muestra el juego al que juegas",
+    es: { title: "Estado", gap: "Tiempo entre actualizaciones", gapWarn: "Menos de {n} s aumenta el riesgo de bloqueo", parens: "Ocultar paréntesis en canciones", parensDesc: "“Canción (Remasterizada)” se muestra como “Canción”", sub: "Juego y música en tu Info", back: "Atrás", game: "Estado de juego", gameDesc: "Muestra el juego al que juegas",
       music: "Estado de Spotify", musicDesc: "Muestra lo que estás escuchando", gameText: "Texto del juego", musicText: "Texto de Spotify", text: "Texto", insert: "Insertar",
       reset: "Restablecer", priority: "Si hay ambos activos", pGame: "Juego", pMusic: "Música", idle: "Cuando no hay nada", iRestore: "Restaurar mi Info",
       iClear: "Borrarla", iKeep: "Dejarla", language: "Idioma", auto: "Automático", now: "Tu Info ahora mismo", none: "No hay nada en marcha",
       limit: "WhatsApp permite 50 caracteres. Los nombres se acortan para que quepan, tus palabras nunca." },
-    fr: { title: "Statut", parens: "Masquer les parenthèses des titres", parensDesc: "« Titre (Remasterisé) » devient « Titre »", sub: "Jeu et musique dans ton Actu", back: "Retour", game: "Statut de jeu", gameDesc: "Affiche le jeu auquel tu joues",
+    fr: { title: "Statut", gap: "Délai entre les mises à jour", gapWarn: "Moins de {n} s augmente le risque de bannissement", parens: "Masquer les parenthèses des titres", parensDesc: "« Titre (Remasterisé) » devient « Titre »", sub: "Jeu et musique dans ton Actu", back: "Retour", game: "Statut de jeu", gameDesc: "Affiche le jeu auquel tu joues",
       music: "Statut Spotify", musicDesc: "Affiche ce que tu écoutes", gameText: "Texte du jeu", musicText: "Texte Spotify", text: "Texte", insert: "Insérer",
       reset: "Réinitialiser", priority: "Si les deux sont actifs", pGame: "Jeu", pMusic: "Musique", idle: "Quand rien ne joue", iRestore: "Restaurer mon Actu",
       iClear: "L’effacer", iKeep: "La laisser", language: "Langue", auto: "Automatique", now: "Ton Actu en ce moment", none: "Rien en cours",
       limit: "WhatsApp autorise 50 caractères. Les noms sont raccourcis pour tenir, jamais tes mots." },
-    ca: { title: "Estat", parens: "Amaga els parèntesis de les cançons", parensDesc: "“Cançó (Remasteritzada)” es mostra com “Cançó”", sub: "Joc i música a la teva Info", back: "Enrere", game: "Estat del joc", gameDesc: "Mostra el joc al qual jugues",
+    ca: { title: "Estat", gap: "Temps entre actualitzacions", gapWarn: "Menys de {n} s augmenta el risc de bloqueig", parens: "Amaga els parèntesis de les cançons", parensDesc: "“Cançó (Remasteritzada)” es mostra com “Cançó”", sub: "Joc i música a la teva Info", back: "Enrere", game: "Estat del joc", gameDesc: "Mostra el joc al qual jugues",
       music: "Estat de Spotify", musicDesc: "Mostra el que estàs escoltant", gameText: "Text del joc", musicText: "Text de Spotify", text: "Text", insert: "Insereix",
       reset: "Restableix", priority: "Si tots dos són actius", pGame: "Joc", pMusic: "Música", idle: "Quan no hi ha res", iRestore: "Restaura la meva Info",
       iClear: "Esborra-la", iKeep: "Deixa-la", language: "Idioma", auto: "Automàtic", now: "La teva Info ara mateix", none: "No hi ha res en marxa",
@@ -162,6 +162,15 @@
     .wt-chip{border:1px solid var(--WDS-neutral-gray-700,#424445);background:transparent;color:var(--input-border-active,#21c063);border-radius:16px;padding:5px 12px;font:inherit;font-size:14px;cursor:pointer;transition:background .15s}
     .wt-chip:hover{background:rgba(33,192,99,.12)}.wt-link{margin-left:auto;background:transparent;border:0;color:var(--WDS-neutral-gray-400,#959393);font:inherit;font-size:14px;cursor:pointer}
     .wt-link:hover{color:var(--WDS-content-default,#fafafa)}.wt-note{margin:4px 20px 0;font-size:13px;line-height:1.45;color:var(--WDS-neutral-gray-400,#959393)}
+    .wt-slider{padding:0 20px 14px}
+    .wt-range{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;margin:6px 0 4px;cursor:pointer;outline:none;
+      background:linear-gradient(to right,var(--input-border-active,#21c063) var(--p),var(--WDS-neutral-gray-700,#424445) var(--p))}
+    .wt-range.bad{background:linear-gradient(to right,#f15c6d var(--p),var(--WDS-neutral-gray-700,#424445) var(--p))}
+    .wt-range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--input-border-active,#21c063);border:0;transition:transform .15s,background .15s}
+    .wt-range.bad::-webkit-slider-thumb{background:#f15c6d}
+    .wt-range:active::-webkit-slider-thumb{transform:scale(1.2)}
+    .wt-warn{font-size:13px;color:#f15c6d;min-height:18px;margin-top:4px}
+    .wt-bad{color:#f15c6d!important}
     .wt-pv{margin-top:4px;font-size:16px;color:var(--WDS-content-default,#fafafa)}`;
   document.head.append(STYLE);
 
@@ -187,6 +196,30 @@
   const divider = () => parse(T.switchDivider);
   const gap = () => { const g = document.createElement("div"); g.style.height = "10px"; return g; };
 
+  function gapSlider() {
+    const W0 = W.getSettings().gap;
+    const row = infoRow(tr("gap"), "");
+    const range = document.createElement("input");
+    range.type = "range"; range.className = "wt-range";
+    range.min = W.GAP_MIN; range.max = W.GAP_MAX; range.step = 5; range.value = W0;
+    range.setAttribute("aria-label", tr("gap"));
+    const warn = document.createElement("div"); warn.className = "wt-warn";
+    const paint = () => {
+      const v = Number(range.value), bad = v < W.GAP_SAFE;
+      subSpan(row).textContent = `${v} s`;
+      subSpan(row).classList.toggle("wt-bad", bad);
+      range.classList.toggle("bad", bad);
+      range.style.setProperty("--p", ((v - W.GAP_MIN) / (W.GAP_MAX - W.GAP_MIN)) * 100 + "%");
+      warn.textContent = bad ? tr("gapWarn").replace("{n}", W.GAP_SAFE) : "";
+    };
+    range.addEventListener("input", paint);
+    range.addEventListener("change", () => W.patchSettings((r) => { r.gap = Number(range.value); }));
+    paint();
+    const box = document.createElement("div"); box.className = "wt-slider";
+    box.append(range, warn);
+    return [row, box];
+  }
+
   function aboutNow() {
     const p = W.preview();
     return p ? `${p.emoji ? p.emoji + " " : ""}${p.text}` : tr("none");
@@ -210,7 +243,7 @@
       chevronRow(tr("idle"), { restore: tr("iRestore"), clear: tr("iClear"), keep: tr("iKeep") }[s.idle], () => nav.push(() => choicePage("idle"))),
       chevronRow(tr("language"), s.lang === "auto" ? tr("auto") : LANG_NAMES[s.lang], () => nav.push(() => choicePage("language"))),
     ];
-    return shell(tr("title"), sw, section(divider(), gap(), ...withSeps(rows)), section(divider(), gap(), prev));
+    return shell(tr("title"), sw, section(divider(), gap(), ...withSeps(rows)), section(divider(), gap(), ...gapSlider()), section(divider(), gap(), prev));
   }
 
   function choicePage(kind) {
@@ -351,7 +384,7 @@
   new MutationObserver(() => {
     if (queued) return;
     queued = true;
-    requestAnimationFrame(() => { queued = false; try { mountRow(); } catch (e) { console.warn("[whatstauts] row:", e); } });
+    requestAnimationFrame(() => { queued = false; try { mountRow(); } catch (e) { console.warn("[whatstatus] row:", e); } });
   }).observe(document.body, { childList: true, subtree: true });
   mountRow();
 })();

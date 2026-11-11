@@ -1,6 +1,6 @@
 # Third-party notices
 
-WhatStatus bundles the following assets inside `whatstauts.exe`:
+WhatStatus bundles the following assets inside `WhatStatus.exe`:
 
 | Asset | Used for | License |
 |---|---|---|

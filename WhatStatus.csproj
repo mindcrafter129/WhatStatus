@@ -5,8 +5,10 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>whatstauts</AssemblyName>
-    <RootNamespace>Whatstauts</RootNamespace>
+    <AssemblyName>WhatStatus</AssemblyName>
+    <RootNamespace>WhatStatus</RootNamespace>
+    <Version>1.1.0</Version>
+    <Product>WhatStatus</Product>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

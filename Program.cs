@@ -3,13 +3,13 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.Win32;
 
-namespace Whatstauts;
+namespace WhatStatus;
 
 static partial class Program
 {
     const string WhatsAppExe = "WhatsApp.Root.exe";
     const string WhatsAppAumid = "5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App";
-    const string HostName = "com.whatstauts.host";
+    const string HostName = "com.whatstatus.host";
     const string ExtensionId = "bgegnmfhchaokkkipolfegciebidcfkc"; // fixed by the key in ext/manifest.json
     const string PolicyKey = @"Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments";
     static readonly string[] HostKeys =
@@ -20,8 +20,8 @@ static partial class Program
     static readonly string[] ExtFiles = { "manifest.json", "background.js", "bridge.js", "page.js", "ui.js" };
 
     public static readonly string Dir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "whatstauts");
-    static string InstalledExe => Path.Combine(Dir, "whatstauts.exe");
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WhatStatus");
+    public static string InstalledExe => Path.Combine(Dir, "WhatStatus.exe");
     static string ExtDir => Path.Combine(Dir, "ext");
     static string HostManifest => Path.Combine(Dir, HostName + ".json");
     public static Action<int>? Stage;
@@ -31,6 +31,8 @@ static partial class Program
     static async Task<int> Main(string[] args)
     {
         Directory.CreateDirectory(Dir);
+        // run by the updater after swapping the exe
+        if (args.Contains("--finish-update")) { RefreshInstall(); return 0; }
         // started by WebView2 as the native messaging host
         if (args.Length > 0 && args[0].StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase))
             return await Host.RunAsync();
@@ -54,19 +56,8 @@ static partial class Program
         string self = Environment.ProcessPath!;
         if (!SamePath(self, InstalledExe)) File.Copy(self, InstalledExe, overwrite: true);
 
-        InstallExtension();
-
-        var manifest = new JsonObject
-        {
-            ["name"] = HostName,
-            ["description"] = "whatstauts game detector",
-            ["path"] = InstalledExe,
-            ["type"] = "stdio",
-            ["allowed_origins"] = new JsonArray($"chrome-extension://{ExtensionId}/"),
-        };
-        File.WriteAllText(HostManifest, manifest.ToJsonString(new() { WriteIndented = true }));
-        foreach (var k in HostKeys)
-            using (var key = Registry.CurrentUser.CreateSubKey(k)) key.SetValue("", HostManifest);
+        RefreshInstall();
+        RemoveLegacy();
 
         Stage?.Invoke(1);
         if (!SetPolicy(PolicyValue()))
@@ -78,10 +69,36 @@ static partial class Program
         return 0;
     }
 
+    // extension files + native host registration, no admin needed
+    public static void RefreshInstall()
+    {
+        InstallExtension();
+        var manifest = new JsonObject
+        {
+            ["name"] = HostName,
+            ["description"] = "WhatStatus game detector",
+            ["path"] = InstalledExe,
+            ["type"] = "stdio",
+            ["allowed_origins"] = new JsonArray($"chrome-extension://{ExtensionId}/"),
+        };
+        File.WriteAllText(HostManifest, manifest.ToJsonString(new() { WriteIndented = true }));
+        foreach (var k in HostKeys)
+            using (var key = Registry.CurrentUser.CreateSubKey(k)) key.SetValue("", HostManifest);
+    }
+
+    // versions before 1.1 were installed as "whatstauts"
+    static void RemoveLegacy()
+    {
+        foreach (var k in new[] { @"Software\Microsoft\Edge\NativeMessagingHosts\com.whatstauts.host", @"Software\Google\Chrome\NativeMessagingHosts\com.whatstauts.host" })
+            Registry.CurrentUser.DeleteSubKeyTree(k, throwOnMissingSubKey: false);
+        try { Directory.Delete(Path.Combine(Path.GetDirectoryName(Dir)!, "whatstauts"), recursive: true); } catch { }
+    }
+
     public static int Unpatch()
     {
         Stage?.Invoke(0);
         KillHosts();
+        RemoveLegacy();
         foreach (var k in HostKeys) Registry.CurrentUser.DeleteSubKeyTree(k, throwOnMissingSubKey: false);
         try { File.Delete(HostManifest); } catch { }
         Stage?.Invoke(1);
@@ -160,7 +177,7 @@ static partial class Program
 
     static void KillHosts()
     {
-        foreach (var p in Process.GetProcessesByName("whatstauts"))
+        foreach (var p in new[] { "WhatStatus", "whatstauts" }.SelectMany(Process.GetProcessesByName))
             using (p)
             {
                 if (p.Id == Environment.ProcessId) continue;

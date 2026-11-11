@@ -1,17 +1,22 @@
 // sets the About from the host's activity, using WhatsApp's own modules
 (() => {
-  if (window.__whatstauts) return;
+  if (window.__whatstatus) return;
 
   const MAX_LEN = 50;
   const LIFETIME = 3600;              // seconds, has to be on whatsapp's allowlist
   const RENEW_MS = 45 * 60 * 1000;
   const SETTLE_MS = 2_000;
-  const MIN_GAP_MS = 4_000;
-  const K = { saved: "whatstauts:saved", applied: "whatstauts:applied", settings: "whatstauts:settings" };
+  const GAP_MIN = 5, GAP_MAX = 120, GAP_SAFE = 30; // seconds between About writes
+  const K = { saved: "whatstatus:saved", applied: "whatstatus:applied", settings: "whatstatus:settings" };
+  // keep settings from versions before 1.1 (stored as "whatstauts:...")
+  for (const key of Object.values(K)) {
+    const old = key.replace("whatstatus:", "whatstauts:");
+    try { if (localStorage.getItem(key) == null && localStorage.getItem(old) != null) localStorage.setItem(key, localStorage.getItem(old)); localStorage.removeItem(old); } catch {}
+  }
 
   const DEFAULTS = {
     game: { enabled: true, template: "Playing {game}", emoji: "" },
-    music: { enabled: true, template: "Listening to {song} by {artist}", emoji: "", stripParens: false },
+    music: { enabled: false, template: "Listening to {song} by {artist}", emoji: "", stripParens: false },
     priority: "game",   // or "music"
     idle: "restore",    // or "clear" / "keep"
   };
@@ -45,6 +50,7 @@
       music: { ...DEFAULTS.music, template: TPL[lang].music, ...s.music },
       priority: s.priority === "music" ? "music" : "game",
       idle: ["restore", "clear", "keep"].includes(s.idle) ? s.idle : DEFAULTS.idle,
+      gap: Math.min(GAP_MAX, Math.max(GAP_MIN, Math.round(Number(s.gap)) || GAP_SAFE)),
     };
   }
   function setSettings(s) {
@@ -158,7 +164,7 @@
     if (changed) {
       // wait for it to settle, and rate limit writes
       if (pendingKey !== key) { pendingKey = key; pendingSince = Date.now(); }
-      if (Date.now() - pendingSince < SETTLE_MS || Date.now() - lastWrite < MIN_GAP_MS) return;
+      if (Date.now() - pendingSince < SETTLE_MS || Date.now() - lastWrite < getSettings().gap * 1000) return;
     } else if (Date.now() - applied.at < RENEW_MS) {
       return;
     }
@@ -214,7 +220,7 @@
     }
   }
 
-  document.addEventListener("whatstauts:game", (e) => {
+  document.addEventListener("whatstatus:game", (e) => {
     try {
       const msg = JSON.parse(e.detail);
       const next = { game: msg.game ?? null, music: msg.music ?? null };
@@ -225,12 +231,12 @@
   });
   setInterval(sync, 1_000);
 
-  window.__whatstauts = {
-    MAX_LEN, PLACEHOLDERS, DEFAULTS,
+  window.__whatstatus = {
+    MAX_LEN, PLACEHOLDERS, DEFAULTS, GAP_MIN, GAP_MAX, GAP_SAFE,
     getSettings, setSettings, patchSettings, render, staticLength, TPL, effLang, songName,
     activity: () => activity,
     preview: () => desired(),
   };
-  document.dispatchEvent(new CustomEvent("whatstauts:ready"));
+  document.dispatchEvent(new CustomEvent("whatstatus:ready"));
   log("page script loaded");
 })();
